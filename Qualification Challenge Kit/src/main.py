@@ -9,7 +9,10 @@ h_user = namedtuple("user", ["id", "init_speed", "data_size", "factor"])
 # toycase: "../toy_example/toy_testcase.csv"
 
 def solve(input_file):
+    start_time = time.time()
+
     speed_to_data_map = {}
+    cols = {}
 
     total_data = 0
     res = {}  # total_speed, n_cols, data_loss
@@ -23,7 +26,7 @@ def solve(input_file):
         for row in data:
             speed, data_size = map(int, row.split(","))
             speed_to_data_map[speed] = data_size
-    with open(input_file) as file:
+    with open("../test_cases/tc%s" % input_file) as file:
         data = file.read().splitlines()
         m, n = map(int, data[0].split(","))
         n_users = int(data[1])
@@ -44,12 +47,12 @@ def solve(input_file):
         saved_users = []
         while curr_data_percentage < data_percentage_goal and len(users) > 0:
             curr_data_transmitted = 0
-            _, new_user = heapq.heappop(users)
+            _, user = heapq.heappop(users)
             factor_sum = sum([u.factor * 0.01 for u in saved_users])
             speed = user.init_speed * (1 - user.factor * 0.01 * (factor_sum - user.factor * 0.01))
             if speed > 0:
-                saved_users.append(new_user)
-                factor_sum = sum([u.factor * 0.01 for u in saved_users])
+                saved_users.append(user)
+                factor_sum += user.factor * 0.01
                 for user in saved_users:
                     speed = user.init_speed * (1 - user.factor * 0.01 * (factor_sum - user.factor * 0.01))
                     if speed > 0:
@@ -59,7 +62,8 @@ def solve(input_file):
                         curr_data_transmitted += data_transmitted
             curr_data_percentage = curr_data_transmitted / total_data
         # update
-        factor_sum = sum([u.factor * 0.01 for u in saved_users])
+        # factor_sum = sum([u.factor * 0.01 for u in saved_users])
+        print(saved_users)
         for user in saved_users:
             speed = user.init_speed * (1 - user.factor * 0.01 * (factor_sum - user.factor * 0.01))
             if speed > 0:
@@ -75,7 +79,8 @@ def solve(input_file):
                 if new_data_size > 0:
                     heapq.heappush(users,
                                    (-new_data_size, h_user(user.id, user.init_speed, new_data_size, user.factor)))
-
+            print(speed)
+        cols[i] = sorted([u.id for u in saved_users])
         data_percentage_goal = 1 if i == (n - 1) else 1 / (n - i - 1)
 
     penalty_term = sum([r[2] for r in res.values()])
@@ -83,12 +88,34 @@ def solve(input_file):
 
     score = objective_func - alpha * penalty_term
 
+    for user, r in res.items():
+        tot_speed, n_cols, _ = r
+        print(user, 1 if n_cols == 0 else tot_speed / n_cols)
     print(objective_func, penalty_term, alpha, score)
+    print(cols)
+
+    dt = int((time.time() - start_time) * 1000)
+    print(res)
+    with open('output/%s' % input_file, 'w') as file:
+        for i in range(m):
+            row = ",".join(["U%i" % cols[j][i] if len(cols[j]) > i else "-" for j in range(n)])
+            file.write(row + "\n")
+        row = ",".join(str(r[2]) for r in res.values()) + "," + str(penalty_term)
+        file.write(row + "\n")
+        row = ",".join(str(0 if r[1] == 0 else r[0] / r[1]) for r in res.values()) + "," + str(objective_func)
+        file.write(row + "\n")
+        file.write(str(score) + "\n")
+        file.write(str(dt) + "\n")
 
 
-for i in range(1, 1):
+start_time = time.time()
+#solve("toy_testcase.csv")
+stop_time = time.time()
+print(stop_time - start_time)
+
+for i in range(1, 14):
     print("test case %i" % i)
     start_time = time.time()
-    solve("../test_cases/tc%i.csv" % i)
+    solve("%i.csv" % i)
     stop_time = time.time()
     print(stop_time - start_time)
