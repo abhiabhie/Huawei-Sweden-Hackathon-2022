@@ -35,7 +35,7 @@ def solve(input_file):
         users = []
         for u in range(3, 3 + n_users):
             user = h_user(*map(int, data[u].split(",")))
-            res[user.id] = [0, 0, user.data_size]
+            res[user.id] = [0, 0, user.data_size, user]
             total_data += user.data_size
             heapq.heappush(users, (-user.data_size, user))
             sum_init_speed += user.init_speed
@@ -45,7 +45,8 @@ def solve(input_file):
     for i in range(n):
         curr_data_percentage = 0
         saved_users = []
-        while curr_data_percentage < data_percentage_goal and len(users) > 0:
+        max_data_percentage = -1
+        while curr_data_percentage < data_percentage_goal and len(users) > 0 and len(saved_users) < m:
             curr_data_transmitted = 0
             _, user = heapq.heappop(users)
             factor_sum = sum([u.factor * 0.01 for u in saved_users])
@@ -62,8 +63,8 @@ def solve(input_file):
                         curr_data_transmitted += data_transmitted
             curr_data_percentage = curr_data_transmitted / total_data
         # update
-        # factor_sum = sum([u.factor * 0.01 for u in saved_users])
-        print(saved_users)
+        factor_sum = sum([u.factor * 0.01 for u in saved_users])
+        #     print(saved_users)
         for user in saved_users:
             speed = user.init_speed * (1 - user.factor * 0.01 * (factor_sum - user.factor * 0.01))
             if speed > 0:
@@ -72,30 +73,27 @@ def solve(input_file):
                 total_data -= data_transmitted
 
                 res[user.id][0] += speed
-                res[user.id][1] += 1
                 res[user.id][2] = max(res[user.id][2] - data_transmitted, 0)
 
                 new_data_size = max(user.data_size - data_transmitted, 0)
                 if new_data_size > 0:
                     heapq.heappush(users,
                                    (-new_data_size, h_user(user.id, user.init_speed, new_data_size, user.factor)))
-            print(speed)
+            res[user.id][1] += 1
         cols[i] = sorted([u.id for u in saved_users])
         data_percentage_goal = 1 if i == (n - 1) else 1 / (n - i - 1)
 
-    penalty_term = sum([r[2] for r in res.values()])
+    penalty_term = sum([r[2] for r in res.values()]) / sum([r[3].data_size for r in res.values()])
     objective_func = sum([0 if r[1] == 0 else r[0] / r[1] for r in res.values()]) / sum_init_speed
 
     score = objective_func - alpha * penalty_term
 
     for user, r in res.items():
-        tot_speed, n_cols, _ = r
-        print(user, 1 if n_cols == 0 else tot_speed / n_cols)
-    print(objective_func, penalty_term, alpha, score)
-    print(cols)
+        tot_speed, n_cols, _, _ = r
+        # print(user, 1 if n_cols == 0 else tot_speed / n_cols)
+    # print(objective_func, penalty_term, alpha, score)
 
     dt = int((time.time() - start_time) * 1000)
-    print(res)
     with open('output/%s' % input_file, 'w') as file:
         for i in range(m):
             row = ",".join(["U%i" % cols[j][i] if len(cols[j]) > i else "-" for j in range(n)])
@@ -109,7 +107,7 @@ def solve(input_file):
 
 
 start_time = time.time()
-#solve("toy_testcase.csv")
+# solve("toy_testcase.csv")
 stop_time = time.time()
 print(stop_time - start_time)
 
