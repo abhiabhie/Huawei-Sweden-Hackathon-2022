@@ -43,7 +43,7 @@ def target_factor(M,init_speed,factor,total_data,index_map,users,flag,avg_speed,
     return target_curr
 
 def write(tc,M,N,grid,avg_speed,best_speed,data_loss,total_data,alpha,start_time):
-    with open(str(tc)+'.csv', 'w') as file:
+    with open(str(tc)+'.csv', 'w', newline='') as file:
         writer = csv.writer(file)
     
         for i in range (0,M):
@@ -68,7 +68,8 @@ def write(tc,M,N,grid,avg_speed,best_speed,data_loss,total_data,alpha,start_time
         writer.writerow(score)
         
         execution_time = []
-        execution_time.append(time.time() - start_time)
+        temp = math.floor((time.time() - start_time)*1000)
+        execution_time.append(temp)
         writer.writerow(execution_time)
         
 
